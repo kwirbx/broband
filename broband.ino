@@ -35,6 +35,7 @@
 #define FPS 8
 #define LED_POWER_PIN 5
 #define MIC_POWER_PIN 11
+#define audioSensitivity 20
 
 DigitalButton btn = buttonCreate(BUTTON_PIN);
 
@@ -362,7 +363,7 @@ void audioDraw() {
 
 
    // map 1v p-p level to the max scale of the display
-   uint16_t displayPeak = map(peakToPeak, 0, 20, 0, h);
+   uint16_t displayPeak = map(peakToPeak, 0, audioSensitivity, 0, h);
    uint16_t displayPeak_constrain = constrain(displayPeak, 0, 9);
    
      Serial.println(displayPeak);
