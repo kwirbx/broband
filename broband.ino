@@ -34,6 +34,7 @@
 #define BUTTON_OFF_TIME 1100
 #define FPS 8
 #define LED_POWER_PIN 5
+#define MIC_POWER_PIN 11
 
 DigitalButton btn = buttonCreate(BUTTON_PIN);
 
@@ -115,11 +116,15 @@ void nextPreset(){
     currentPreset = presets[currentPresetIndex];
 }
 */
+
+//later optimize so that mic is only on when audio thing is
 void ledsOn(){
     digitalWrite(LED_POWER_PIN, HIGH);
+    digitalWrite(MIC_POWER_PIN, HIGH);
 }
 void ledsOff(){
     digitalWrite(LED_POWER_PIN, LOW);
+    digitalWrite(MIC_POWER_PIN, LOW);
 }
 
 
@@ -132,7 +137,7 @@ void ledsOff(){
 
 // Define matrix width and height.
 #define MATRIX_WIDTH 8
-#define MATRIX_HEIGHT 6
+#define MATRIX_HEIGHT 8
 
 // MATRIX DECLARATION:
 // Parameter 1 = width of EACH NEOPIXEL MATRIX (not total display)
@@ -339,7 +344,7 @@ void audioDraw() {
    //code i didn't write
    while (millis() - startMillis < sampleWindow)
    {
-      sample = analogRead(1); 
+      sample = analogRead(0); 
       if (sample < 1024)  // toss out spurious readings
       {
          if (sample > signalMax)
@@ -357,10 +362,10 @@ void audioDraw() {
 
 
    // map 1v p-p level to the max scale of the display
-   uint16_t displayPeak = map(peakToPeak, 0, 100, 0, h);
-   uint16_t displayPeak_constrain = constrain(displayPeak, 0, 8);
+   uint16_t displayPeak = map(peakToPeak, 0, 20, 0, h);
+   uint16_t displayPeak_constrain = constrain(displayPeak, 0, 9);
    
-     //Serial.println(displayPeak);
+     Serial.println(displayPeak);
      
 
  for(uint16_t x_pixel = 0; x_pixel < w; x_pixel++){
@@ -628,100 +633,25 @@ void display_animation (const uint32_t *bitmapAnimation , uint8_t height, uint8_
 }
 
 void loop() {
-    // clear the screen after X bitmaps have been displayed and we
-    // loop back to the top left corner
-    // 8x8 => 1, 16x8 => 2, 17x9 => 6
-  //  static uint8_t pixmap_count = ((MATRIX_WIDTH+7)/8) * ((MATRIX_HEIGHT+7)/8);
-
-    /*Serial.print("Screen pixmap capacity: ");
-    Serial.println(pixmap_count);*/
-
    
-/*
-    display_resolution();
-    delay(3000);
-
-    // Cycle through red, green, blue, display 2 checkered patterns
-    // useful to debug some screen types and alignment.
-    uint16_t bmpcolor[] = { LED_GREEN_HIGH, LED_BLUE_HIGH, LED_RED_HIGH };
-    for (uint8_t i=0; i<3; i++)
-    {
-	display_bitmap(0, bmpcolor[i]);
- 	delay(500);
-	display_bitmap(1, bmpcolor[i]);
- 	delay(500);
-    }
-
-    // Display 3 smiley faces.
-    for (uint8_t i=2; i<=4; i++)
-    {
-	display_bitmap(i, bmpcolor[i-2]);
-	// If more than one pixmap displayed per screen, display more quickly.
-	delay(MATRIX_WIDTH>8?500:1500);
-    }
-    
-    // If we have multiple pixmaps displayed at once, wait a bit longer on the last.
-    delay(MATRIX_WIDTH>8?1000:500);
-
-    display_lines();
-    delay(3000);
-
-    display_boxes();
-    delay(3000);
-
-    display_circles();
-    matrix->clear();
-    delay(3000);
-
-    for (uint8_t i=0; i<=(sizeof(RGB_bmp)/sizeof(RGB_bmp[0])-1); i++)
-    {
-	display_rgbBitmap(i);
-	delay(MATRIX_WIDTH>8?500:1500);
-    }
-    // If we have multiple pixmaps displayed at once, wait a bit longer on the last.
-    delay(MATRIX_WIDTH>8?1000:500);
-
-    display_four_white();
-    delay(3000);
-
-    display_scrollText();
-
-    // pan a big pixmap*/
 
     // if we just woke up, do wake up stuff
     if(justWoke){
         onWake();
         justWoke = false;
     }
-    
-    //display_animation((const uint32_t *) mono_bmp, 8, 8);
-   //piskelDrawRGBBitmap(0, 0, (const uint32_t *) bitmap24, 24, 24);
-  //  display_panOrBounceBitmap(24);
-  //  display_rgbBitmap;
-    // bounce around a small one
-    //display_panOrBounceBitmap(8);
-   // display_animation((const uint32_t *) heart8, 8, 8, 3);
-   
-    //display_lines();
-    //piskelDrawRGBBitmap(0, 0, (const uint32_t *)tetris, 8, 8, 4);
-   // matrix->show();
-   //audioDraw();
-   //pickPalette = 5 - pickPalette; alternate between 2 and 3 pallete things
-     // if its time for the next tick, do
-    /*uint64_t currentMillis = millis();
-    if(currentMillis - lastMillis > tickRate){
-        
-        lastMillis = currentMillis;
 
-        // tick button too i guess
-        digitalButtonTick(btn);
-    }*/
+    
+ 
      switch (menu) {
-      case 1:
-        display_animation((const uint32_t *) pacman, 8, 8, 2);
-        //audioDraw();
+      case 2:
+        audioDraw();
         break;
       case 0:
+        //display_animation((const uint32_t *) pacman, 8, 8, 2);
+        audioDraw();
+        break;
+      case 1:
         display_animation((const uint32_t *) tetris, 8, 8, 55);
         break;
       
@@ -731,12 +661,13 @@ void loop() {
     digitalButtonTick(btn);
     digitalButtonTick(btn2);
 }
-/*void Display_printChar(byte _x, byte _y,  const byte _character [], byte _size, int _color, int _background) {
-  byte length = pgm_read_byte(&_character [0]);  // first byte Indicates width of character*/
+
    
     
 void setup() {
     Serial.begin(115200);
+    pinMode(LED_POWER_PIN, OUTPUT); 
+    pinMode(MIC_POWER_PIN, OUTPUT); 
     matrix->begin();
 
     matrix->setTextWrap(false);
@@ -750,22 +681,13 @@ void setup() {
     }
 
     buttonOnTap(btn, onButtonTap);
-    buttonOnTap(btn2, onButtonTap2);
     buttonOnHold(btn, onButtonHold, BUTTON_OFF_TIME);
+    buttonOnTap(btn2, onButtonTap2);
+
     
-    // Test full bright of all LEDs. If brightness is too high
-    // for your current limit (i.e. USB), decrease it.
-    // piskelDrawRGBBitmap(0, 0, (const uint32_t *) bitmap24, 24, 24);
-    //Serial.println(sizeof(heart8)/sizeof(heart8[0]));
-    //matrix->fillScreen(LED_WHITE_HIGH);
-    //display_panOrBounceBitmap(8);
-    //matrix->show();
-    //Serial.println(sizeof(bitmap24)/sizeof(bitmap24[0]));
-    //display_animation((const uint32_t *) heart8, 8, 8, 3);
-    //display_animation((const uint32_t *) tetris, 8, 8, 29);
-    //delay(1000);
-    // calculate tick rate in ms
-   
+    
+    
     matrix->clear();
+    ledsOn();
 }
 
